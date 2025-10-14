@@ -67,8 +67,7 @@ Core classes:
 - **Linux** (modern distributions; ext4, btrfs, XFS, ZFS, etc.)
 
 **Java Runtime**
-- Built with **JDK 21** → runs on **Java 21+** by default.  
-- If you recompile with `javac --release 21`, the JAR runs on **Java 21+**.
+- Built with **JDK 21** → runs on **Java 17+** by default.  
 
 **Filesystem Behavior**
 - **Read-only traversal**; file contents are **not** opened.  
@@ -137,9 +136,3 @@ javac -encoding UTF-8 -d out RootDirectoryListing.java HtmlSnippets.java FileTyp
 > manifest.mf echo Main-Class: RootDirectoryListing
 >> manifest.mf echo.
 jar cfm Java-Directory-Tree.jar manifest.mf -C out .
-
-
-git config user.name "JoZapf"
-git config user.email "mail@jozapf.de"
-# Zeilenenden unter Windows
-git config core.autocrlf true
