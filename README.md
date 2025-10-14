@@ -138,8 +138,3 @@ javac -encoding UTF-8 -d out RootDirectoryListing.java HtmlSnippets.java FileTyp
 >> manifest.mf echo.
 jar cfm Java-Directory-Tree.jar manifest.mf -C out .
 
-
-git config user.name "JoZapf"
-git config user.email "mail@jozapf.de"
-# Zeilenenden unter Windows
-git config core.autocrlf true
