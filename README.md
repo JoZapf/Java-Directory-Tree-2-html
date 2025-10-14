@@ -69,7 +69,6 @@ Core classes:
 **Java Runtime**
 - Built with **JDK 21** → runs on **Java 17+** by default.  
 
-
 **Filesystem Behavior**
 - **Read-only traversal**; file contents are **not** opened.  
 - **Hidden files** are included as provided by the OS/JVM.  
@@ -137,4 +136,3 @@ javac -encoding UTF-8 -d out RootDirectoryListing.java HtmlSnippets.java FileTyp
 > manifest.mf echo Main-Class: RootDirectoryListing
 >> manifest.mf echo.
 jar cfm Java-Directory-Tree.jar manifest.mf -C out .
-
