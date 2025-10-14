@@ -30,7 +30,6 @@
 - [Run](#run)
   - [Double-click (GUI)](#double-click-gui)
   - [CLI (skip GUI)](#cli-skip-gui)
-- [Security](#security)
 - [Known Limitations & Roadmap](#known-limitations--roadmap)
 - [Versioning & Changelog](#versioning--changelog)
 - [License](#license)
@@ -69,7 +68,7 @@ Core classes:
 
 **Java Runtime**
 - Built with **JDK 21** → runs on **Java 21+** by default.  
-- If you recompile with `javac --release 17`, the JAR runs on **Java 17+**.
+- If you recompile with `javac --release 21`, the JAR runs on **Java 21+**.
 
 **Filesystem Behavior**
 - **Read-only traversal**; file contents are **not** opened.  
@@ -138,3 +137,9 @@ javac -encoding UTF-8 -d out RootDirectoryListing.java HtmlSnippets.java FileTyp
 > manifest.mf echo Main-Class: RootDirectoryListing
 >> manifest.mf echo.
 jar cfm Java-Directory-Tree.jar manifest.mf -C out .
+
+
+git config user.name "JoZapf"
+git config user.email "mail@jozapf.de"
+# Zeilenenden unter Windows
+git config core.autocrlf true
