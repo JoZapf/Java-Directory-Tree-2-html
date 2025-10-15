@@ -137,4 +137,41 @@ javac -encoding UTF-8 -d out RootDirectoryListing.java HtmlSnippets.java FileTyp
 > manifest.mf echo Main-Class: RootDirectoryListing
 >> manifest.mf echo.
 jar cfm Java-Directory-Tree.jar manifest.mf -C out .
+```
 
+## Run
+
+### Double-click (GUI)
+- **What it does:** Opens a minimal folder picker (`JFileChooser`). After you select a folder, the app scans that folder and creates **`directory-tree.html`** inside it. A completion dialog shows the absolute output path.
+- **When to use:** For casual use and non-terminal workflows. No parameters needed.
+
+### CLI (skip GUI)
+
+#### Windows (cmd.exe)
+```bat
+java -Dfile.encoding=UTF-8 -jar Java-Directory-Tree.jar "C:\Users\YourName\Downloads"
+```
+#### Windows (Powershell)
+```bat
+# Quote each -D argument or use stop-parsing:
+java '-Dfile.encoding=UTF-8' -jar Java-Directory-Tree.jar 'C:\Users\YourName\Downloads'
+```
+# or:
+```bat
+java --% -Dfile.encoding=UTF-8 -jar Java-Directory-Tree.jar C:\Users\YourName\Downloads
+```
+
+
+## Versioning & Changelog
+```markdown
+- **1.0 — 2025-10-14**
+  - Initial public release
+  - Minimal GUI (folder picker) and CLI mode
+  - UTF-8 HTML output as `directory-tree.html`
+  - File-type statistics and unknown-files tab
+  - Dark-mode toggle and timestamp footer
+  - Built with JDK 21 (see “Compatibility” for targeting Java 17+ with `--release 17`)
+```  
+## License
+
+MIT © 2025 Jo Zapf — see the published [LICENSE](LICENSE) file in this repository.
