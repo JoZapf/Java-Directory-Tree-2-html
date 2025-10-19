@@ -24,10 +24,6 @@
 ### 🚀 **StringBuilder Optimization for Maximum Performance**
 Complete HTML generation rewrite using **in-memory StringBuilder** instead of streaming to disk during traversal. This eliminates redundant I/O operations for **even faster** execution on all storage types.
 
-**Technical improvement:**
-- **Before (v1.2):** Write HTML → Close file → Read file → Insert stats → Write file again
-- **Now (v1.3):** Build HTML in RAM → Insert stats → Write once
-
 **Performance benefit:** Additional 5-15 seconds saved on large directories (especially on HDDs).
 
 ### 📊 **Comprehensive Tree Statistics in Header**
