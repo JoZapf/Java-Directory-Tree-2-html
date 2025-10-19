@@ -5,6 +5,8 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -22,13 +24,22 @@ public class RootDirectoryListing {
 
     // Application metadata
     private static final String APP_NAME = "Java-Directory-Tree";
-    private static final String VERSION = "1.2";
+    private static final String VERSION = "1.3";
     private static final String AUTHOR = "Jo Zapf";
     private static final String LICENSE = "MIT";
     private static final String REPO_URL = "https://github.com/JoZapf/Java-Directory-Tree-2-html";
     private static final String LICENSE_URL = "https://opensource.org/licenses/MIT";
 
     private static final Logger LOGGER = Logger.getLogger(RootDirectoryListing.class.getName());
+
+    /**
+     * Statistics container for traversal results
+     */
+    static class TreeStats {
+        long totalSize = 0;
+        int folderCount = 0;
+        int fileCount = 0;
+    }
 
     public static void main(String[] args) {
         try {
@@ -96,95 +107,156 @@ public class RootDirectoryListing {
     }
 
     /**
-     * Main processing logic with optional progress callback - SINGLE PASS
+     * Main processing logic with optional progress callback - SINGLE PASS with StringBuilder
+     * Returns the collected TreeStats
      */
-    private static void processDirectory(Path rootDir, Path outputHtml, ProgressCallback callback) throws IOException {
+    private static TreeStats processDirectory(Path rootDir, Path outputHtml, ProgressCallback callback) throws IOException {
         Map<String, Integer> extensionStats = new TreeMap<>();
         List<Path> unknownFiles = new ArrayList<>();
-        Map<Path, Long> sizeCache = new HashMap<>(); // RAM cache for directory sizes
-        
+        Map<Path, Long> sizeCache = new HashMap<>();
+        TreeStats stats = new TreeStats();
+        StringBuilder htmlBuilder = new StringBuilder();
+
         if (callback != null) callback.updatePhase("Generating HTML tree...");
-        
-        try (BufferedWriter writer = Files.newBufferedWriter(outputHtml, StandardCharsets.UTF_8)) {
-            LocalDateTime now = LocalDateTime.now();
-            String isoGenerated = now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
-            // HTML head
-            writer.write("<!DOCTYPE html>\n<html lang='en'>\n<head>\n<meta charset='UTF-8'>\n");
-            writer.write("<title>" + APP_NAME + "</title>\n");
+        LocalDateTime now = LocalDateTime.now();
+        String isoGenerated = now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
-            // Metadata & links
-            writer.write("<meta name='author' content='" + escapeHtml(AUTHOR) + "'>\n");
-            writer.write("<meta name='license' content='" + escapeHtml(LICENSE) + "'>\n");
-            writer.write("<meta name='version' content='" + escapeHtml(VERSION) + "'>\n");
-            writer.write("<meta name='repository' content='" + escapeHtml(REPO_URL) + "'>\n");
-            writer.write("<meta name='generated' content='" + escapeHtml(isoGenerated) + "'>\n");
-            writer.write("<link rel='license' href='" + escapeHtml(LICENSE_URL) + "'>\n");
-            writer.write("<link rel='author' href='https://github.com/JoZapf'>\n");
+        // HTML head
+        htmlBuilder.append("<!DOCTYPE html>\n<html lang='en'>\n<head>\n<meta charset='UTF-8'>\n");
+        htmlBuilder.append("<title>").append(APP_NAME).append("</title>\n");
 
-            writer.write(HtmlSnippets.getCss());
-            writer.write(HtmlSnippets.getJavaScript());
-            writer.write("</head><body>\n");
+        // Metadata & links
+        htmlBuilder.append("<meta name='author' content='").append(escapeHtml(AUTHOR)).append("'>\n");
+        htmlBuilder.append("<meta name='license' content='").append(escapeHtml(LICENSE)).append("'>\n");
+        htmlBuilder.append("<meta name='version' content='").append(escapeHtml(VERSION)).append("'>\n");
+        htmlBuilder.append("<meta name='repository' content='").append(escapeHtml(REPO_URL)).append("'>\n");
+        htmlBuilder.append("<meta name='generated' content='").append(escapeHtml(isoGenerated)).append("'>\n");
+        htmlBuilder.append("<link rel='license' href='").append(escapeHtml(LICENSE_URL)).append("'>\n");
+        htmlBuilder.append("<link rel='author' href='https://github.com/JoZapf'>\n");
 
-            // Header / Controls
-            writer.write("<div class='mode-toggle' onclick='toggleMode()'>☀️ Light Mode</div>\n");
-            writer.write("<h2>Tree:&nbsp;" + escapeHtml(rootDir.toString()) + "</h2>\n");
+        htmlBuilder.append(HtmlSnippets.getCss());
+        htmlBuilder.append(HtmlSnippets.getJavaScript());
+        htmlBuilder.append("</head><body>\n");
 
-            // Tabs skeleton
-            writer.write("""
-                <div class="tabs">
-                  <ul class="tab-header">
-                    <li class="active" onclick="showTab('explorer')">Explorer</li>
-                    <li onclick="showTab('filetypes')">File Types</li>
-                    <li onclick="showTab('unknownfiles')">Unknown Files</li>
-                  </ul>
-                  <div class="tab-content">
-                """);
+        // Header / Controls
+        htmlBuilder.append("<div class='mode-toggle' onclick='toggleMode()'>☀️ Light Mode</div>\n");
 
-            // Explorer tab - SINGLE PASS
-            writer.write("<div id='explorer' class='tab-pane active'>\n<ul>\n");
-            int[] processedCounter = new int[]{0};
-            writeDirectoryRecursiveSinglePass(writer, rootDir, new int[]{0}, extensionStats, unknownFiles, 
-                                             sizeCache, processedCounter, callback);
-            writer.write("</ul>\n</div>\n");
+        // H2 with stats - we'll build this after traversal
+        String statsHeader = ""; // Placeholder
 
-            // File types tab
-            writer.write("<div id='filetypes' class='tab-pane'>\n<h3>File Type Overview</h3>\n");
-            writer.write("<table border='1' cellpadding='5' cellspacing='0'>\n<tr><th>File type</th><th>Count</th></tr>\n");
-            for (Map.Entry<String, Integer> entry : extensionStats.entrySet()) {
-                writer.write("<tr><td>" + escapeHtml(entry.getKey()) + "</td><td>" + entry.getValue() + "</td></tr>\n");
-            }
-            writer.write("</table>\n</div>\n");
+        // Tabs skeleton
+        htmlBuilder.append("""
+            <div class="tabs">
+              <ul class="tab-header">
+                <li class="active" onclick="showTab('explorer')">Explorer</li>
+                <li onclick="showTab('filetypes')">File Types</li>
+                <li onclick="showTab('unknownfiles')">Unknown Files</li>
+              </ul>
+              <div class="tab-content">
+            """);
 
-            // Unknown files tab
-            writer.write("<div id='unknownfiles' class='tab-pane'>\n<h3>Unknown file types (files without extension)</h3>\n<ul>\n");
-            for (Path p : unknownFiles) {
-                writer.write("<li>" + escapeHtml(p.toString().replace("\\", "/")) + "</li>\n");
-            }
-            writer.write("</ul>\n</div>\n</div>\n</div>\n"); // close tab-content and tabs
+        // Explorer tab - SINGLE PASS
+        htmlBuilder.append("<div id='explorer' class='tab-pane active'>\n<ul>\n");
+        int[] processedCounter = new int[]{0};
+        writeDirectoryRecursiveSinglePass(htmlBuilder, rootDir, new int[]{0}, extensionStats, unknownFiles,
+                sizeCache, processedCounter, callback, stats);
+        htmlBuilder.append("</ul>\n</div>\n");
 
-            // Footer timestamp
-            DateTimeFormatter footerFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            writer.write("<div style='text-align: right; margin-top: 1em; font-size: 0.9em; color: gray;'>");
-            writer.write("Tree index timestamp: " + now.format(footerFmt));
-            writer.write("</div>\n</body></html>");
+        // File types tab
+        htmlBuilder.append("<div id='filetypes' class='tab-pane'>\n<h3>File Type Overview</h3>\n");
+        htmlBuilder.append("<table border='1' cellpadding='5' cellspacing='0'>\n<tr><th>File type</th><th>Count</th></tr>\n");
+        for (Map.Entry<String, Integer> entry : extensionStats.entrySet()) {
+            htmlBuilder.append("<tr><td>").append(escapeHtml(entry.getKey())).append("</td><td>").append(entry.getValue()).append("</td></tr>\n");
         }
+        htmlBuilder.append("</table>\n</div>\n");
+
+        // Unknown files tab
+        htmlBuilder.append("<div id='unknownfiles' class='tab-pane'>\n<h3>Unknown file types (files without extension)</h3>\n<ul>\n");
+        for (Path p : unknownFiles) {
+            htmlBuilder.append("<li>").append(escapeHtml(p.toString().replace("\\", "/"))).append("</li>\n");
+        }
+        htmlBuilder.append("</ul>\n</div>\n</div>\n</div>\n");
+
+        // Footer timestamp
+        DateTimeFormatter footerFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        htmlBuilder.append("<div style='text-align: right; margin-top: 1em; font-size: 0.9em; color: gray;'>");
+        htmlBuilder.append("Tree index timestamp: ").append(now.format(footerFmt));
+        htmlBuilder.append("</div>\n</body></html>");
+
+        // Now build the complete HTML with stats header
+        statsHeader = buildStatsHeader(rootDir, stats);
+        String completeHtml = htmlBuilder.toString();
+        String marker = "</div>\n<div class=\"tabs\">";
+        completeHtml = completeHtml.replace(marker, "</div>\n" + statsHeader + "\n<div class=\"tabs\">");
+
+        // Write to file ONCE
+        Files.writeString(outputHtml, completeHtml, StandardCharsets.UTF_8);
+        
+        // Return stats for GUI display
+        return stats;
+    }
+
+    /**
+     * Build the h2 header with internationalized statistics
+     */
+    private static String buildStatsHeader(Path rootDir, TreeStats stats) {
+        String sizeStr = formatSizeInternational(stats.totalSize);
+        String foldersStr = formatNumberInternational(stats.folderCount);
+        String filesStr = formatNumberInternational(stats.fileCount);
+
+        return "<h2>Tree: " + escapeHtml(rootDir.toString()) + " | " +
+                sizeStr + " Total | " +
+                foldersStr + " Folders | " +
+                filesStr + " Files</h2>";
+    }
+
+    /**
+     * Format size in GB/TB with space as thousand separator and dot as decimal
+     */
+    private static String formatSizeInternational(long bytes) {
+        double tb = bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0);
+        double gb = bytes / (1024.0 * 1024.0 * 1024.0);
+
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+        symbols.setGroupingSeparator(' ');
+        symbols.setDecimalSeparator('.');
+
+        DecimalFormat df = new DecimalFormat("#,##0.00", symbols);
+
+        if (tb >= 1.0) {
+            return df.format(tb) + " TB";
+        } else {
+            return df.format(gb) + " GB";
+        }
+    }
+
+    /**
+     * Format number with space as thousand separator
+     */
+    private static String formatNumberInternational(int number) {
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+        symbols.setGroupingSeparator(' ');
+
+        DecimalFormat df = new DecimalFormat("#,##0", symbols);
+        return df.format(number);
     }
 
     /**
      * SINGLE PASS: Recursively writes directory tree AND calculates sizes in one pass
      */
-    private static void writeDirectoryRecursiveSinglePass(BufferedWriter writer,
+    private static void writeDirectoryRecursiveSinglePass(StringBuilder html,
                                                           Path dir,
                                                           int[] idCounter,
-                                                          Map<String, Integer> stats,
+                                                          Map<String, Integer> extStats,
                                                           List<Path> unknownFiles,
                                                           Map<Path, Long> sizeCache,
                                                           int[] processedCounter,
-                                                          ProgressCallback callback) throws IOException {
+                                                          ProgressCallback callback,
+                                                          TreeStats stats) throws IOException {
         List<Path> entries = new ArrayList<>();
         long totalDirSize = 0;
-        
+
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path entry : stream) {
                 entries.add(entry);
@@ -193,30 +265,28 @@ public class RootDirectoryListing {
             LOGGER.log(Level.WARNING, "Access denied: " + dir.toAbsolutePath(), e);
             Path last = dir.getFileName();
             String label = (last == null) ? dir.toString() : last.toString();
-            writer.write("<li><span style='color:orange;'>[Access denied: " +
-                    escapeHtml(label) + "]</span></li>\n");
+            html.append("<li><span style='color:orange;'>[Access denied: ")
+                    .append(escapeHtml(label)).append("]</span></li>\n");
             return;
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Error accessing: " + dir.toAbsolutePath(), e);
             Path last = dir.getFileName();
             String label = (last == null) ? dir.toString() : last.toString();
-            writer.write("<li><span style='color:red;'>[Error accessing " +
-                    escapeHtml(label) + "]</span></li>\n");
+            html.append("<li><span style='color:red;'>[Error accessing ")
+                    .append(escapeHtml(label)).append("]</span></li>\n");
             return;
         }
 
         for (Path entry : entries) {
-            // Update progress
             if (callback != null) {
                 processedCounter[0]++;
                 callback.updateProgress(processedCounter[0]);
             }
-            
-            // Skip unreadable entries
+
             if (!Files.isReadable(entry)) {
                 LOGGER.warning("Not readable: " + entry.toAbsolutePath());
-                writer.write("<li><span style='color:orange;'>[Not readable: " +
-                        escapeHtml(entry.getFileName().toString()) + "]</span></li>\n");
+                html.append("<li><span style='color:orange;'>[Not readable: ")
+                        .append(escapeHtml(entry.getFileName().toString())).append("]</span></li>\n");
                 continue;
             }
 
@@ -225,51 +295,52 @@ public class RootDirectoryListing {
 
             if (Files.isDirectory(entry)) {
                 LOGGER.info("Folder: " + entry.toAbsolutePath());
-                
-                // Calculate size recursively and cache it
+                stats.folderCount++;
+
                 long dirSize = calculateDirectorySizeAndCache(entry, sizeCache);
                 totalDirSize += dirSize;
-                
+
                 String sizeStr = formatFileSize(dirSize);
-                writer.write("<li class='folder'><span onclick=\"toggle(event, '" + id + "')\">📁 " +
-                        escapeHtml(name) + "</span><span class='file-size'>" + sizeStr + "</span>\n");
-                writer.write("<ul class='nested' id='" + id + "'>\n");
-                writeDirectoryRecursiveSinglePass(writer, entry, idCounter, stats, unknownFiles, 
-                                                 sizeCache, processedCounter, callback);
-                writer.write("</ul></li>\n");
+                html.append("<li class='folder'><span onclick=\"toggle(event, '").append(id).append("')\">📁 ")
+                        .append(escapeHtml(name)).append("</span><span class='file-size'>").append(sizeStr).append("</span>\n");
+                html.append("<ul class='nested' id='").append(id).append("'>\n");
+                writeDirectoryRecursiveSinglePass(html, entry, idCounter, extStats, unknownFiles,
+                        sizeCache, processedCounter, callback, stats);
+                html.append("</ul></li>\n");
             } else {
                 LOGGER.info("  File: " + entry.toAbsolutePath());
+                stats.fileCount++;
+
                 String ext = getExtension(name).toLowerCase(Locale.ROOT);
                 if (ext.equals("unknown")) {
                     unknownFiles.add(entry.toAbsolutePath());
                 }
-                stats.put(ext, stats.getOrDefault(ext, 0) + 1);
+                extStats.put(ext, extStats.getOrDefault(ext, 0) + 1);
                 String icon = FileTypeIcons.getIcon(ext);
-                
-                // Handle potential AccessDeniedException for file size
+
                 long fileSize = 0;
                 try {
                     fileSize = Files.size(entry);
                 } catch (java.nio.file.AccessDeniedException e) {
                     LOGGER.warning("Access denied for size: " + entry.toAbsolutePath());
-                    writer.write("<li>" + icon + " " + escapeHtml(name) +
-                            " <small>" + escapeHtml(ext.toUpperCase(Locale.ROOT)) + " file</small>" +
-                            "<span class='file-size'>[Access Denied]</span></li>\n");
+                    html.append("<li>").append(icon).append(" ").append(escapeHtml(name))
+                            .append(" <small>").append(escapeHtml(ext.toUpperCase(Locale.ROOT))).append(" file</small>")
+                            .append("<span class='file-size'>[Access Denied]</span></li>\n");
                     continue;
                 } catch (IOException e) {
                     LOGGER.warning("Error reading size: " + entry.toAbsolutePath());
                     continue;
                 }
-                
+
                 totalDirSize += fileSize;
                 String sizeStr = formatFileSize(fileSize);
-                writer.write("<li>" + icon + " " + escapeHtml(name) +
-                        " <small>(" + escapeHtml(ext.toUpperCase(Locale.ROOT)) + " file)</small>" +
-                        "<span class='file-size'>" + sizeStr + "</span></li>\n");
+                html.append("<li>").append(icon).append(" ").append(escapeHtml(name))
+                        .append(" <small>(").append(escapeHtml(ext.toUpperCase(Locale.ROOT))).append(" file)</small>")
+                        .append("<span class='file-size'>").append(sizeStr).append("</span></li>\n");
             }
         }
-        
-        // Cache the total size of this directory
+
+        stats.totalSize += totalDirSize;
         sizeCache.put(dir, totalDirSize);
     }
 
@@ -277,11 +348,10 @@ public class RootDirectoryListing {
      * Calculate directory size recursively using cache
      */
     private static long calculateDirectorySizeAndCache(Path dir, Map<Path, Long> sizeCache) {
-        // Check cache first
         if (sizeCache.containsKey(dir)) {
             return sizeCache.get(dir);
         }
-        
+
         long size = 0;
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path entry : stream) {
@@ -292,7 +362,6 @@ public class RootDirectoryListing {
                     try {
                         size += Files.size(entry);
                     } catch (java.nio.file.AccessDeniedException e) {
-                        // Skip files we can't access
                         LOGGER.fine("Access denied for size calculation: " + entry);
                     } catch (IOException e) {
                         // Skip files we can't read
@@ -300,13 +369,11 @@ public class RootDirectoryListing {
                 }
             }
         } catch (java.nio.file.AccessDeniedException e) {
-            // Can't access this directory at all
             LOGGER.fine("Access denied to directory: " + dir);
         } catch (IOException e) {
             // Return size calculated so far
         }
-        
-        // Cache the result
+
         sizeCache.put(dir, size);
         return size;
     }
@@ -324,17 +391,11 @@ public class RootDirectoryListing {
         }
     }
 
-    /**
-     * Returns the file extension or "unknown" if none is present.
-     */
     private static String getExtension(String filename) {
         int dotIndex = filename.lastIndexOf('.');
         return (dotIndex >= 0) ? filename.substring(dotIndex + 1) : "unknown";
     }
 
-    /**
-     * Minimal HTML escaping for text nodes: &, <, >.
-     */
     private static String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;")
@@ -342,19 +403,13 @@ public class RootDirectoryListing {
                 .replace(">", "&gt;");
     }
 
-    /**
-     * Interface for progress callbacks
-     */
     interface ProgressCallback {
         void updateProgress(int current);
         void updatePhase(String phase);
     }
 
-    /**
-     * Progress dialog with circular progress indicator
-     */
     static class ProcessingDialog extends SwingWorker<Void, ProgressUpdate> {
-        private static final int DIAMETER = 200; // Same as CircularProgressPanel
+        private static final int DIAMETER = 200;
         private final Path rootDir;
         private final Path outputHtml;
         private final JDialog dialog;
@@ -362,75 +417,70 @@ public class RootDirectoryListing {
         private final JLabel phaseLabel;
         private final JLabel counterLabel;
         private final JLabel hintLabel;
+        private TreeStats finalStats = null;
 
         public ProcessingDialog(Path rootDir, Path outputHtml) {
             this.rootDir = rootDir;
             this.outputHtml = outputHtml;
-            
-            // Create modal dialog
+
             dialog = new JDialog((Frame) null, APP_NAME, true);
             dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-            dialog.setSize(500, 550);
+            dialog.setSize(500, 570); // Adjusted for taller counter container
             dialog.setLocationRelativeTo(null);
             dialog.setLayout(new BorderLayout());
 
-            // Create progress panel with dark gray background
             JPanel centerPanel = new JPanel(new GridBagLayout());
             centerPanel.setBackground(new Color(64, 64, 64));
-            
+
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.gridx = 0;
             gbc.gridy = 0;
             gbc.insets = new Insets(10, 10, 10, 10);
             gbc.anchor = GridBagConstraints.CENTER;
-            
-            // Phase label ABOVE circle
+
             phaseLabel = new JLabel("Initializing...", SwingConstants.CENTER);
             phaseLabel.setForeground(Color.WHITE);
             phaseLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
             centerPanel.add(phaseLabel, gbc);
-            
-            // Progress circle
+
             gbc.gridy = 1;
             progressPanel = new CircularProgressPanel();
             centerPanel.add(progressPanel, gbc);
-            
-            // Counter label in styled container BELOW circle
+
             gbc.gridy = 2;
             gbc.fill = GridBagConstraints.HORIZONTAL;
-            gbc.weightx = 0; // No stretch
-            
+            gbc.weightx = 0;
+
             JPanel counterContainer = new JPanel(new BorderLayout());
-            counterContainer.setPreferredSize(new Dimension(DIAMETER, 60));
+            counterContainer.setPreferredSize(new Dimension(DIAMETER, 80)); // Increased for multi-line stats
             counterContainer.setBackground(new Color(64, 64, 64));
             counterContainer.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(85, 85, 85), 1),
-                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                    BorderFactory.createLineBorder(new Color(85, 85, 85), 1),
+                    BorderFactory.createEmptyBorder(10, 15, 10, 15)
             ));
-            
-            counterLabel = new JLabel("<html><center>Processing: 0 items</center></html>", SwingConstants.CENTER);
+
+            counterLabel = new JLabel("<html><center>Processing: 0 items total</center></html>", SwingConstants.CENTER);
             counterLabel.setForeground(Color.WHITE);
             counterLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
             counterContainer.add(counterLabel, BorderLayout.CENTER);
-            
+
             centerPanel.add(counterContainer, gbc);
-            
-            // Hint label BELOW counter with fixed width
+
             gbc.gridy = 3;
             gbc.insets = new Insets(5, 10, 10, 10);
-            
+
             JPanel hintContainer = new JPanel(new BorderLayout());
             hintContainer.setPreferredSize(new Dimension(DIAMETER, 50));
             hintContainer.setBackground(new Color(64, 64, 64));
-            
-            hintLabel = new JLabel("<html><center>Depending on the number of files,<br>this may take some time.</center></html>", 
-                                  SwingConstants.CENTER);
+
+            hintLabel = new JLabel("<html><center>Depending on the number of files,<br>this may take some time.</center></html>",
+                    SwingConstants.CENTER);
             hintLabel.setForeground(new Color(180, 180, 180));
             hintLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            
+
             hintContainer.add(hintLabel, BorderLayout.CENTER);
             centerPanel.add(hintContainer, gbc);
-            
+
             dialog.add(centerPanel, BorderLayout.CENTER);
         }
 
@@ -447,8 +497,13 @@ public class RootDirectoryListing {
                     publish(new ProgressUpdate(-1, phase));
                 }
             };
+
+            // Process and capture stats
+            finalStats = processDirectory(rootDir, outputHtml, callback);
             
-            processDirectory(rootDir, outputHtml, callback);
+            // Update to completed
+            publish(new ProgressUpdate(-1, "Completed!"));
+            
             return null;
         }
 
@@ -461,9 +516,7 @@ public class RootDirectoryListing {
                 }
                 if (latest.count >= 0) {
                     counterLabel.setText("<html><center>Processing: " + String.format("%,d", latest.count) + " items</center></html>");
-                    // Since we don't have a total anymore, we can't show percentage
-                    // But we can show a pulsing animation or just keep counting
-                    int pseudoProgress = Math.min(99, (latest.count / 1000) % 100); // Pseudo progress
+                    int pseudoProgress = Math.min(99, (latest.count / 1000) % 100);
                     progressPanel.setProgress(pseudoProgress);
                 }
             }
@@ -471,17 +524,62 @@ public class RootDirectoryListing {
 
         @Override
         protected void done() {
-            dialog.dispose();
             try {
                 get(); // Check for exceptions
-                JOptionPane.showMessageDialog(
-                        null,
-                        "HTML file created:\n" + outputHtml.toAbsolutePath(),
-                        APP_NAME,
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                
+                // Display final stats in counter label (replaces counter)
+                if (finalStats != null) {
+                    String sizeStr = formatSizeInternational(finalStats.totalSize);
+                    String foldersStr = formatNumberInternational(finalStats.folderCount);
+                    String filesStr = formatNumberInternational(finalStats.fileCount);
+                    
+                    counterLabel.setText("<html><center>" +
+                        rootDir.toString() + "<br>" +
+                        sizeStr + " Total | " +
+                        foldersStr + " Folders | " +
+                        filesStr + " Files</center></html>");
+                }
+                
+                // Update UI to show completion
+                progressPanel.setProgress(100);
+                phaseLabel.setText("✅ Success!");
+                hintLabel.setVisible(false);
+                
+                // Calculate position for success popup (above the progress dialog)
+                Point dialogLocation = dialog.getLocationOnScreen();
+                int popupX = dialogLocation.x + 150;
+                int popupY = dialogLocation.y - 150; // 100px above
+                
+                // Show success message in positioned dialog
+                JDialog successDialog = new JDialog(dialog, "Success", true);
+                successDialog.setLayout(new BorderLayout());
+                successDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+                
+                JPanel messagePanel = new JPanel(new BorderLayout());
+                messagePanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+                
+                JLabel messageLabel = new JLabel("<html><center>HTML file created:<br>" + 
+                    outputHtml.toAbsolutePath() + "</center></html>", SwingConstants.CENTER);
+                messagePanel.add(messageLabel, BorderLayout.CENTER);
+                
+                JButton okButton = new JButton("OK");
+                okButton.addActionListener(e -> {
+                    successDialog.dispose();
+                    dialog.dispose(); // Close progress dialog after OK
+                });
+                
+                JPanel buttonPanel = new JPanel();
+                buttonPanel.add(okButton);
+                messagePanel.add(buttonPanel, BorderLayout.SOUTH);
+                
+                successDialog.add(messagePanel);
+                successDialog.pack();
+                successDialog.setLocation(popupX, popupY);
+                successDialog.setVisible(true); // Blocks until OK is clicked
+                
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error during processing", e);
+                dialog.dispose();
                 JOptionPane.showMessageDialog(
                         null,
                         "Error: " + e.getMessage(),
@@ -497,22 +595,16 @@ public class RootDirectoryListing {
         }
     }
 
-    /**
-     * Progress update container
-     */
     static class ProgressUpdate {
         final int count;
         final String phase;
-        
+
         ProgressUpdate(int count, String phase) {
             this.count = count;
             this.phase = phase;
         }
     }
 
-    /**
-     * Custom panel for circular progress indicator
-     */
     static class CircularProgressPanel extends JPanel {
         private int progress = 0;
         private static final int DIAMETER = 200;
@@ -536,18 +628,15 @@ public class RootDirectoryListing {
             int x = (getWidth() - DIAMETER) / 2;
             int y = (getHeight() - DIAMETER) / 2;
 
-            // Draw background circle (gray)
             g2d.setColor(new Color(100, 100, 100));
             g2d.setStroke(new BasicStroke(15));
             g2d.drawOval(x, y, DIAMETER, DIAMETER);
 
-            // Draw progress arc (green)
-            g2d.setColor(new Color(76, 175, 80)); // Green
+            g2d.setColor(new Color(76, 175, 80));
             double angle = (progress / 100.0) * 360.0;
             Arc2D.Double arc = new Arc2D.Double(x, y, DIAMETER, DIAMETER, 90, -angle, Arc2D.OPEN);
             g2d.draw(arc);
 
-            // Draw percentage text
             g2d.setColor(Color.WHITE);
             g2d.setFont(new Font("SansSerif", Font.BOLD, 36));
             String percentText = progress + "%";

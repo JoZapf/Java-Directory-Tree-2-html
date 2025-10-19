@@ -11,7 +11,7 @@
 
 | Repository | Author | License | Version | Date |
 |---|---|---|---|---|
-| <https://github.com/JoZapf/Java-Directory-Tree-2-html> | Jo Zapf | MIT | **1.0** | **2025-10-14** |
+| <https://github.com/JoZapf/Java-Directory-Tree-2-html> | Jo Zapf | MIT | **1.2** | **2025-10-18** |
 
 ---
 
@@ -256,4 +256,4 @@ echo "Built: $JAR"
 - **Author:** Jo Zapf  
 - **Repository:** <https://github.com/JoZapf/Java-Directory-Tree-2-html>
 
-**Build doc version:** 1.0 (2025-10-14)
+**Build doc version:** 1.2 (2025-10-18)
