@@ -320,7 +320,6 @@ java -Dfile.encoding=UTF-8 -jar java-directory-tree-2-html.jar /Users/yourname/D
 
 ### **1.3 — 2025-10-19** 🚀
 - **[PERFORMANCE]** StringBuilder-based HTML generation (eliminates redundant file I/O)
-- **[PERFORMANCE]** Single write operation instead of write-read-write cycle
 - **[FEATURE]** Comprehensive statistics in page header (size, folders, files)
 - **[FEATURE]** Internationalized number formatting (space separator, dot decimal)
 - **[FEATURE]** Automatic unit selection (GB/TB) with 2 decimal precision
