@@ -34,8 +34,8 @@ Every generated HTML now displays **complete statistics** directly in the page h
 **Features:**
 - **Internationalized number formatting** (space as thousand separator, dot as decimal)
 - **Automatic unit selection** (GB for < 1TB, TB for ≥ 1TB)
-- **Complete accuracy** with 2 decimal precision for sizes
-- **Real-time calculation** during single-pass traversal
+- **GUI update** displays **complete statistics** directly in the GUI at success state
+
 
 ### 💾 **Optimized Memory Management**
 - **StringBuilder-based HTML generation:** ~10-30 MB for typical use cases
