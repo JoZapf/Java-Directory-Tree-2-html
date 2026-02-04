@@ -1,3 +1,9 @@
 Manifest-Version: 1.0
 Main-Class: RootDirectoryListing
+Implementation-Title: Java-Directory-Tree-2-HTML
+Implementation-Version: 1.4
+Implementation-Vendor: Jo Zapf
+Specification-Title: Directory Tree HTML Generator
+Specification-Version: 1.4
+Specification-Vendor: Jo Zapf
 

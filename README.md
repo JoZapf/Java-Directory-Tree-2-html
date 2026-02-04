@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![JDK](https://img.shields.io/badge/JDK-21-blue)
 ![Platforms](https://img.shields.io/badge/OS-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-![Version](https://img.shields.io/badge/version-1.3-orange)
+![Version](https://img.shields.io/badge/version-1.4-orange)
 
 > Generate an **interactive HTML directory view** from any folder with **comprehensive statistics**, **file sizes**, **progress tracking**, and **dark mode by default**.  
 > **Double-click** opens a GUI with real-time progress; **CLI** usage with an argument skips the GUI.
@@ -14,34 +14,32 @@
 
 | Repository | Author | License | Version | Date |
 |---|---|---|---|---|
-| <https://github.com/JoZapf/Java-Directory-Tree-2-html> | Jo Zapf | MIT | **1.3** | **2025-10-19** |
+| <https://github.com/JoZapf/Java-Directory-Tree-2-html> | Jo Zapf | MIT | **1.4** | **2025-02-04** |
 - **Built with:** Java/JDK 21 and the standard library (`java.nio.file`, `javax.swing`)
 
 ---
 
-## ✨ New in Version 1.3
+## ✨ New in Version 1.4
 
-### 🚀 **StringBuilder Optimization for Maximum Performance**
-Complete HTML generation rewrite using **in-memory StringBuilder** instead of streaming to disk during traversal. This eliminates redundant I/O operations for **even faster** execution on all storage types.
+### 📚 **Comprehensive JavaDoc Documentation**
+Complete professional-grade API documentation for all classes, methods, and components:
 
-**Performance benefit:** Additional 5-15 seconds saved on large directories (especially on HDDs).
+**Documentation Coverage:**
+- **All public APIs** with `@param`, `@return`, `@see`, and `@throws` tags
+- **Utility classes** (FileTypeIcons, HtmlSnippets) with detailed usage examples
+- **Main application logic** (RootDirectoryListing) with execution flow descriptions
+- **GUI components** (ProcessingDialog, CircularProgressPanel) with technical details
+- **Interfaces** (ProgressCallback) with implementation guidance
 
-### 📊 **Comprehensive Tree Statistics in Header**
-Every generated HTML now displays **complete statistics** directly in the page header:
+**Code Quality Improvements:**
+- Private constructors added to utility classes (prevents instantiation)
+- AssertionError thrown on instantiation attempts (best practice)
+- Comprehensive inline documentation for maintainability
 
-**Format:** `Tree: E:\ | 3 465.12 GB Total | 1 234 Folders | 74 598 Files`
-
-**Features:**
-- **Internationalized number formatting** (space as thousand separator, dot as decimal)
-- **Automatic unit selection** (GB for < 1TB, TB for ≥ 1TB)
-- **GUI update** displays **complete statistics** directly in the GUI at success state
-
-
-### 💾 **Optimized Memory Management**
-- **StringBuilder-based HTML generation:** ~10-30 MB for typical use cases
-- **RAM-cached directory sizes:** ~30-50 MB for 75,000 files
-- **Total memory footprint:** ~40-80 MB (minimal overhead)
-- **No temporary files** or disk-based caching required
+**Generated Documentation:**
+- HTML JavaDoc available in `docs/javadoc/`
+- Full API reference with cross-linked classes and methods
+- Professional documentation ready for developers and contributors
 
 ---
 
@@ -317,6 +315,15 @@ java -Dfile.encoding=UTF-8 -jar java-directory-tree-2-html.jar /Users/yourname/D
 ---
 
 ## Versioning & Changelog
+
+### **1.4 — 2025-02-04** 📚
+- **[DOCUMENTATION]** Comprehensive JavaDoc documentation for all classes and methods
+- **[DOCUMENTATION]** Generated HTML JavaDoc documentation in `docs/javadoc/`
+- **[CODE QUALITY]** Added private constructors to utility classes (best practice)
+- **[CODE QUALITY]** Documented all public APIs with `@param`, `@return`, `@see`, and `@throws` tags
+- **[CODE QUALITY]** Detailed descriptions for FileTypeIcons, HtmlSnippets, and RootDirectoryListing
+- **[CODE QUALITY]** Inner classes and interfaces fully documented (ProcessingDialog, CircularProgressPanel, ProgressCallback, ProgressUpdate)
+- **[MAINTENANCE]** Updated .gitignore to include JavaDoc output in repository
 
 ### **1.3 — 2025-10-19** 🚀
 - **[PERFORMANCE]** StringBuilder-based HTML generation (eliminates redundant file I/O)

@@ -31,7 +31,7 @@ public class RootDirectoryListing {
     /**
      * Application version following semantic versioning.
      */
-    private static final String VERSION = "1.3";
+    private static final String VERSION = "1.4";
     
     /**
      * Application author.
