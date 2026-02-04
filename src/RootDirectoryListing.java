@@ -23,14 +23,48 @@ import java.util.logging.Logger;
 public class RootDirectoryListing {
 
     // Application metadata
+    /**
+     * Application name constant.
+     */
     private static final String APP_NAME = "Java-Directory-Tree";
-    private static final String VERSION = "1.3";
+    
+    /**
+     * Application version following semantic versioning.
+     */
+    private static final String VERSION = "1.4";
+    
+    /**
+     * Application author.
+     */
     private static final String AUTHOR = "Jo Zapf";
+    
+    /**
+     * Software license type.
+     */
     private static final String LICENSE = "MIT";
+    
+    /**
+     * GitHub repository URL.
+     */
     private static final String REPO_URL = "https://github.com/JoZapf/Java-Directory-Tree-2-html";
+    
+    /**
+     * License information URL.
+     */
     private static final String LICENSE_URL = "https://opensource.org/licenses/MIT";
 
+    /**
+     * Logger instance for this class.
+     */
     private static final Logger LOGGER = Logger.getLogger(RootDirectoryListing.class.getName());
+
+    /**
+     * Private constructor to prevent instantiation.
+     * This is a utility class with a static main method.
+     */
+    private RootDirectoryListing() {
+        throw new AssertionError("Utility class - do not instantiate");
+    }
 
     /**
      * Statistics container for traversal results
@@ -41,6 +75,30 @@ public class RootDirectoryListing {
         int fileCount = 0;
     }
 
+    /**
+     * Main entry point of the application.
+     * <p>
+     * Execution flow:
+     * </p>
+     * <ol>
+     *   <li>Resolves the start directory from command-line arguments or GUI dialog</li>
+     *   <li>Sets the working directory to the selected path</li>
+     *   <li>Generates an HTML file (directory-tree.html) in the root directory</li>
+     *   <li>Shows progress dialog if GUI is available, otherwise processes in CLI mode</li>
+     * </ol>
+     * <p>
+     * Usage:
+     * </p>
+     * <ul>
+     *   <li>GUI mode: Double-click JAR file (shows directory chooser)</li>
+     *   <li>CLI mode: {@code java -jar java-directory-tree-2-html.jar /path/to/directory}</li>
+     * </ul>
+     *
+     * @param args optional command-line arguments. args[0] can be the directory path.
+     *             If empty or not provided, a GUI file chooser will be shown (if not headless).
+     * @see #resolveStartDir(String[])
+     * @see #processDirectory(Path, Path, ProgressCallback)
+     */
     public static void main(String[] args) {
         try {
             String startDir = resolveStartDir(args);
@@ -391,11 +449,39 @@ public class RootDirectoryListing {
         }
     }
 
+    /**
+     * Extracts the file extension from a filename.
+     * <p>
+     * The extension is the part after the last dot in the filename.
+     * If no dot is present, or if the filename ends with a dot,
+     * "unknown" is returned.
+     * </p>
+     *
+     * @param filename the name of the file
+     * @return the file extension (without dot) in lowercase,
+     *         or "unknown" if no extension is present
+     * @see FileTypeIcons#getIcon(String)
+     */
     private static String getExtension(String filename) {
         int dotIndex = filename.lastIndexOf('.');
         return (dotIndex >= 0) ? filename.substring(dotIndex + 1) : "unknown";
     }
 
+    /**
+     * Escapes HTML special characters to prevent XSS and formatting issues.
+     * <p>
+     * Replaces the following characters:
+     * </p>
+     * <ul>
+     *   <li>{@code &} → {@code &amp;}</li>
+     *   <li>{@code <} → {@code &lt;}</li>
+     *   <li>{@code >} → {@code &gt;}</li>
+     * </ul>
+     *
+     * @param s the string to escape, may be null
+     * @return the escaped string safe for HTML output,
+     *         or empty string if input is null
+     */
     private static String escapeHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;")
@@ -403,22 +489,107 @@ public class RootDirectoryListing {
                 .replace(">", "&gt;");
     }
 
+    /**
+     * Callback interface for progress updates during directory processing.
+     * <p>
+     * Implementations of this interface can monitor the file system traversal
+     * progress and update UI components accordingly.
+     * </p>
+     * <p>
+     * Used by {@link ProcessingDialog} to update the GUI progress indicator
+     * during background processing.
+     * </p>
+     *
+     * @see ProcessingDialog
+     * @see #processDirectory(Path, Path, ProgressCallback)
+     */
     interface ProgressCallback {
+        /**
+         * Updates the progress with the current number of processed items.
+         *
+         * @param current the number of files and folders processed so far
+         */
         void updateProgress(int current);
+        
+        /**
+         * Updates the current processing phase description.
+         *
+         * @param phase description of the current processing phase
+         *              (e.g., "Generating HTML tree...", "Completed!")
+         */
         void updatePhase(String phase);
     }
 
+    /**
+     * Swing dialog that displays processing progress during directory tree generation.
+     * <p>
+     * This dialog extends {@link SwingWorker} to perform background processing
+     * while updating the GUI with progress information. It features:
+     * </p>
+     * <ul>
+     *   <li>Circular progress indicator showing percentage completion</li>
+     *   <li>Item counter showing number of processed files/folders</li>
+     *   <li>Phase label indicating current operation</li>
+     *   <li>Non-blocking UI during background processing</li>
+     *   <li>Success message upon completion</li>
+     * </ul>
+     * <p>
+     * The dialog is modal and prevents user interaction during processing.
+     * Upon completion, it displays final statistics and a success message.
+     * </p>
+     *
+     * @see SwingWorker
+     * @see ProgressCallback
+     * @see CircularProgressPanel
+     */
     static class ProcessingDialog extends SwingWorker<Void, ProgressUpdate> {
+        /**
+         * Diameter of the circular progress indicator in pixels.
+         */
         private static final int DIAMETER = 200;
+        
+        /** Root directory to process. */
         private final Path rootDir;
+        
+        /** Output HTML file path. */
         private final Path outputHtml;
+        
+        /** Main dialog window. */
         private final JDialog dialog;
+        
+        /** Circular progress indicator panel. */
         private final CircularProgressPanel progressPanel;
+        
+        /** Label showing current processing phase. */
         private final JLabel phaseLabel;
+        
+        /** Label showing item count. */
         private final JLabel counterLabel;
+        
+        /** Label showing processing hint/information. */
         private final JLabel hintLabel;
+        
+        /** Final statistics after processing completion. */
         private TreeStats finalStats = null;
 
+        /**
+         * Creates a new processing dialog.
+         * <p>
+         * Initializes all UI components including:
+         * </p>
+         * <ul>
+         *   <li>Progress indicator</li>
+         *   <li>Phase label</li>
+         *   <li>Counter label</li>
+         *   <li>Information hint</li>
+         * </ul>
+         * <p>
+         * The dialog is configured to be modal and centered on screen.
+         * </p>
+         *
+         * @param rootDir the root directory to process
+         * @param outputHtml the path where the HTML file will be created
+         */
         public ProcessingDialog(Path rootDir, Path outputHtml) {
             this.rootDir = rootDir;
             this.outputHtml = outputHtml;
@@ -484,6 +655,22 @@ public class RootDirectoryListing {
             dialog.add(centerPanel, BorderLayout.CENTER);
         }
 
+        /**
+         * Performs the directory processing in the background.
+         * <p>
+         * This method runs on a worker thread and:
+         * </p>
+         * <ul>
+         *   <li>Creates a progress callback for GUI updates</li>
+         *   <li>Calls the main processing logic</li>
+         *   <li>Captures final statistics</li>
+         *   <li>Publishes completion status</li>
+         * </ul>
+         *
+         * @return null (no result value needed)
+         * @throws Exception if an error occurs during processing
+         * @see #processDirectory(Path, Path, ProgressCallback)
+         */
         @Override
         protected Void doInBackground() throws Exception {
             ProgressCallback callback = new ProgressCallback() {
@@ -507,6 +694,21 @@ public class RootDirectoryListing {
             return null;
         }
 
+        /**
+         * Processes progress updates on the Event Dispatch Thread.
+         * <p>
+         * This method receives batches of progress updates from the background
+         * thread and updates the GUI components accordingly. It updates:
+         * </p>
+         * <ul>
+         *   <li>Phase label text</li>
+         *   <li>Item counter label</li>
+         *   <li>Progress indicator percentage</li>
+         * </ul>
+         *
+         * @param chunks list of progress updates received since last call
+         * @see ProgressUpdate
+         */
         @Override
         protected void process(List<ProgressUpdate> chunks) {
             if (!chunks.isEmpty()) {
@@ -522,6 +724,21 @@ public class RootDirectoryListing {
             }
         }
 
+        /**
+         * Called when background processing is complete.
+         * <p>
+         * This method executes on the Event Dispatch Thread and:
+         * </p>
+         * <ul>
+         *   <li>Checks for exceptions from background processing</li>
+         *   <li>Updates UI with final statistics</li>
+         *   <li>Shows success message in a positioned dialog</li>
+         *   <li>Closes the progress dialog after user confirmation</li>
+         *   <li>Displays error dialog if processing failed</li>
+         * </ul>
+         *
+         * @see #doInBackground()
+         */
         @Override
         protected void done() {
             try {
@@ -589,36 +806,118 @@ public class RootDirectoryListing {
             }
         }
 
+        /**
+         * Starts the background processing and displays the dialog.
+         * <p>
+         * This method initiates the SwingWorker execution and makes
+         * the modal dialog visible, blocking until processing completes
+         * or the dialog is closed.
+         * </p>
+         */
         public void start() {
             execute();
             dialog.setVisible(true);
         }
     }
 
+    /**
+     * Container for progress update information.
+     * <p>
+     * Used to communicate between background processing thread and
+     * the GUI update thread. Instances are published from
+     * {@link ProcessingDialog#doInBackground()} and received in
+     * {@link ProcessingDialog#process(List)}.
+     * </p>
+     *
+     * @see ProcessingDialog
+     * @see ProgressCallback
+     */
     static class ProgressUpdate {
+        /** Number of items processed, or -1 if not updated. */
         final int count;
+        
+        /** Current processing phase description, or null if not updated. */
         final String phase;
 
+        /**
+         * Creates a progress update.
+         *
+         * @param count number of items processed, or -1 if this update only contains phase information
+         * @param phase phase description, or null if this update only contains count information
+         */
         ProgressUpdate(int count, String phase) {
             this.count = count;
             this.phase = phase;
         }
     }
 
+    /**
+     * Custom JPanel that displays a circular progress indicator.
+     * <p>
+     * This panel renders a circular progress arc with:
+     * </p>
+     * <ul>
+     *   <li>Gray background circle (inactive state)</li>
+     *   <li>Green progress arc (active portion)</li>
+     *   <li>Centered percentage text</li>
+     *   <li>Anti-aliased rendering for smooth appearance</li>
+     * </ul>
+     * <p>
+     * The progress value ranges from 0 to 100, representing percentage completion.
+     * The arc is drawn clockwise starting from the top (90 degrees).
+     * </p>
+     *
+     * @see ProcessingDialog
+     */
     static class CircularProgressPanel extends JPanel {
+        /** Current progress value (0-100). */
         private int progress = 0;
+        
+        /** Diameter of the circular progress indicator in pixels. */
         private static final int DIAMETER = 200;
 
+        /**
+         * Creates a new circular progress panel.
+         * <p>
+         * Initializes the panel with transparent background and
+         * fixed preferred size based on the diameter.
+         * </p>
+         */
         public CircularProgressPanel() {
             setPreferredSize(new Dimension(DIAMETER + 20, DIAMETER + 20));
             setOpaque(false);
         }
 
+        /**
+         * Sets the current progress value and repaints the component.
+         * <p>
+         * The value is automatically clamped to the range [0, 100].
+         * Values below 0 are set to 0, values above 100 are set to 100.
+         * </p>
+         *
+         * @param progress the progress value (0-100)
+         */
         public void setProgress(int progress) {
             this.progress = Math.min(100, Math.max(0, progress));
             repaint();
         }
 
+        /**
+         * Paints the circular progress indicator.
+         * <p>
+         * Rendering steps:
+         * </p>
+         * <ol>
+         *   <li>Draw gray background circle (full 360°)</li>
+         *   <li>Draw green progress arc (0° to current percentage)</li>
+         *   <li>Draw centered percentage text</li>
+         * </ol>
+         * <p>
+         * Uses anti-aliasing for smooth rendering.
+         * </p>
+         *
+         * @param g the Graphics context to paint on
+         */
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);

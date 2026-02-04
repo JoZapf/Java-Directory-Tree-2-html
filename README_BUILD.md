@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![JDK](https://img.shields.io/badge/JDK-21-blue)
 ![Platforms](https://img.shields.io/badge/OS-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
-![Version](https://img.shields.io/badge/version-1.0-orange)
+![Version](https://img.shields.io/badge/version-1.4-orange)
 
 ---
 
@@ -11,7 +11,7 @@
 
 | Repository | Author | License | Version | Date |
 |---|---|---|---|---|
-| <https://github.com/JoZapf/Java-Directory-Tree-2-html> | Jo Zapf | MIT | **1.2** | **2025-10-18** |
+| <https://github.com/JoZapf/Java-Directory-Tree-2-html> | Jo Zapf | MIT | **1.4** | **2025-02-04** |
 
 ---
 
@@ -256,4 +256,4 @@ echo "Built: $JAR"
 - **Author:** Jo Zapf  
 - **Repository:** <https://github.com/JoZapf/Java-Directory-Tree-2-html>
 
-**Build doc version:** 1.2 (2025-10-18)
+**Build doc version:** 1.4 (2025-02-04)
