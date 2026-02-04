@@ -22,7 +22,7 @@
 ## ✨ New in Version 1.4
 
 ### 📚 **Comprehensive JavaDoc Documentation**
-Complete professional-grade API documentation for all classes, methods, and components:
+Complete professional-grade documentation for all classes, methods, and components:
 
 **Documentation Coverage:**
 - **All public APIs** with `@param`, `@return`, `@see`, and `@throws` tags
