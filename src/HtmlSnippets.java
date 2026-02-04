@@ -1,5 +1,52 @@
+/**
+ * Provides HTML, CSS, and JavaScript code snippets for the generated directory tree.
+ * <p>
+ * This class contains the complete styling and interactive functionality
+ * required for the HTML output. All methods return text blocks with embedded
+ * code that is injected into the generated HTML file.
+ * </p>
+ * <p>
+ * Features included:
+ * </p>
+ * <ul>
+ *   <li>Dark/Light mode toggle with persistent styling</li>
+ *   <li>Collapsible tree structure with smooth transitions</li>
+ *   <li>Tab-based navigation (Explorer, File Types, Unknown Files)</li>
+ *   <li>Responsive layout with file size display</li>
+ *   <li>Interactive folder expansion/collapse</li>
+ * </ul>
+ *
+ * @author Jo Zapf
+ * @version 1.3
+ * @since 1.0
+ */
 public class HtmlSnippets {
 
+    /**
+     * Private constructor to prevent instantiation.
+     * This is a utility class with only static methods.
+     */
+    private HtmlSnippets() {
+        throw new AssertionError("Utility class - do not instantiate");
+    }
+
+    /**
+     * Returns the complete CSS stylesheet for the directory tree HTML.
+     * <p>
+     * The stylesheet includes:
+     * </p>
+     * <ul>
+     *   <li>Base layout and typography</li>
+     *   <li>Dark and light mode color schemes</li>
+     *   <li>Collapsible tree structure styling</li>
+     *   <li>Tab navigation interface</li>
+     *   <li>File size display formatting</li>
+     *   <li>Mode toggle button styling</li>
+     * </ul>
+     *
+     * @return CSS code as a text block string ready for injection into HTML
+     * @see #getJavaScript()
+     */
     public static String getCss() {
         return """
         <style>
@@ -130,6 +177,30 @@ public class HtmlSnippets {
         """;
     }
 
+    /**
+     * Returns the JavaScript code for interactive tree functionality.
+     * <p>
+     * The JavaScript provides:
+     * </p>
+     * <ul>
+     *   <li>Folder expand/collapse toggle functionality</li>
+     *   <li>Tab switching between Explorer, File Types, and Unknown Files</li>
+     *   <li>Dark/Light mode toggle with visual feedback</li>
+     *   <li>DOM manipulation for dynamic UI updates</li>
+     *   <li>Event handling for user interactions</li>
+     * </ul>
+     * <p>
+     * The code includes:
+     * </p>
+     * <ul>
+     *   <li><code>toggle(event, id)</code> - Expands/collapses folder contents</li>
+     *   <li><code>showTab(id)</code> - Switches between different tab views</li>
+     *   <li><code>toggleMode()</code> - Switches between dark and light themes</li>
+     * </ul>
+     *
+     * @return JavaScript code as a text block string ready for injection into HTML
+     * @see #getCss()
+     */
     public static String getJavaScript() {
         return """
         <script>
