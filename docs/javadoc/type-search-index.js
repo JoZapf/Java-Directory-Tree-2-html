@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"Alle Klassen und Schnittstellen","u":"allclasses-index.html"},{"p":"<Unnamed>","l":"FileTypeIcons"},{"p":"<Unnamed>","l":"HtmlSnippets"},{"p":"<Unnamed>","l":"RootDirectoryListing"}];updateSearchResults();

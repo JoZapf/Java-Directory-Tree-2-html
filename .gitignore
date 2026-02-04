@@ -1,4 +1,4 @@
 .idea/
-docs/
+docs/*
 !docs/javadoc/
 directory-tree.html
